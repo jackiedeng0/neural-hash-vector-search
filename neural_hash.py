@@ -89,3 +89,48 @@ print(neighbor_table)
     Model Training
 """
 
+import numpy.linalg
+
+def binary_to_floats(b, n):
+    floats = []
+    for i in range(n):
+        floats.append(b & (1 << (n - i)))
+    return floats
+
+"""
+total_epochs = 10
+
+for epoch in range(total_epochs):
+    print(f"Epoch {epoch+1}/{total_epochs}")
+"""
+
+print("Current weights:")
+print(model.get_weights())
+#for i in range(len(train_vectors)):
+for i in range(5):
+    vector = np.array([train_vectors[i]])
+
+    # Calculate target output
+    #
+    # This is based on moving towards the direction of the mean similarity
+    # of the words that the vector currently maps to. The stronger the
+    # similarity is, the more we want to model to map the current vector to
+    # its current hash. And conversely for negative similarities, its
+    # magnitude determines how much we want to move away from the current hash
+    hash_key = floats_to_binary(model(vector).tolist()[0])
+    neighbors = neighbor_table[hash_key]
+    mean_similarity = 0
+    for neighbor in neighbors:
+        neighbor_vector = embeddings[neighbor.lower()]
+        mean_similarity += numpy.dot(vector, neighbor_vector) / \
+            (numpy.linalg.norm(vector) * numpy.linalg.norm(neighbor_vector))
+    mean_similarity = mean_similarity / len(neighbors)
+
+    target = np.array(binary_to_floats(~hash_key, hash_bits))
+    target = ((target - 0.5) * mean_similarity) + 0.5
+    target.reshape(1, hash_bits)
+
+    model.train_on_batch(np.array([train_vectors[i]]), target)
+
+    print(f"After {i}")
+    print(model.get_weights())
