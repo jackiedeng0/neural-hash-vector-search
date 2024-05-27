@@ -65,38 +65,21 @@ model.compile(
     key for hash table entry.
 """
 
-def floats_to_binary(l):
-    binary = 0
-    for val in l:
-        binary = (binary << 1) + round(val)
-    return binary
+import neighbor_table
 
-neighbor_table = dict()
+table = neighbor_table.NeighborTable(embeddings)
 
 for word, vec in zip(train, train_vectors):
     y = model(vec.reshape(1, EMBED_DIM))
-    hash_key = floats_to_binary(y.tolist()[0])
-    if hash_key in neighbor_table:
-        neighbor_table[hash_key].append(word)
-    else:
-        neighbor_table[hash_key] = [word]
+    table.a_set(np.array(y[0]), word)
 
-import json
-
-with open('untrained_table.test', 'w') as out:
-    json.dump(neighbor_table, out, indent=2)
+table.export_json("untrained_table.test")
 
 """
     Model Training
 """
 
 import numpy.linalg
-
-def binary_to_floats(b, n):
-    floats = []
-    for i in range(n):
-        floats.append(b & (1 << (n - i)))
-    return floats
 
 total_epochs = 30
 
@@ -115,17 +98,12 @@ for epoch in range(total_epochs):
     for i in range(len(train_vectors)):
         vector = train_vectors[i]
 
-        hash_key = floats_to_binary(model(vector.reshape(1, EMBED_DIM)).tolist()[0])
-        neighbors = neighbor_table[hash_key]
-        mean_similarity = 0
-        for neighbor in neighbors:
-            neighbor_vector = embeddings[neighbor.lower()]
-            mean_similarity += numpy.dot(vector, neighbor_vector) / \
-                (numpy.linalg.norm(vector) * numpy.linalg.norm(neighbor_vector))
-        mean_similarity = mean_similarity / len(neighbors)
+        y = np.array(model(vector.reshape(1,EMBED_DIM))[0])
+        mean_similarity = table.a_compare_to_bucket(y, vector)
+        hash_key = neighbor_table.array_to_binary(y)
         average_mean_similarity += mean_similarity
 
-        targets[i] = np.array(binary_to_floats(~hash_key, hash_bits))
+        targets[i] = np.array(neighbor_table.binary_to_array(~hash_key, hash_bits))
         targets[i] = ((targets[i] - 0.5) * mean_similarity) + 0.5
         targets[i].reshape(1, hash_bits)
 
@@ -136,23 +114,18 @@ for epoch in range(total_epochs):
     print("Training ...")
     loss = model.train_on_batch(np.array(train_vectors), targets)
     print(f"Loss: {loss:.2f}")
+    print("Statistics:")
+    print(table.statistics())
 
     # With the new weights, recalculate what the new hash table looks like
-    neighbor_table.clear()
+    table.clear()
     for word, vec in zip(train, train_vectors):
         y = model(vec.reshape(1, EMBED_DIM))
-        hash_key = floats_to_binary(y.tolist()[0])
-        if hash_key in neighbor_table:
-            neighbor_table[hash_key].append(word)
-        else:
-            neighbor_table[hash_key] = [word]
+        table.a_set(np.array(y[0]), word)
 
 """
     Save Hash Table
 """
 
-import json
-
-with open('trained_table.test', 'w') as out:
-    json.dump(neighbor_table, out, indent=2)
+table.export_json("trained_table.test")
 
