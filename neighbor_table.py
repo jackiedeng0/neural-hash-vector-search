@@ -1,6 +1,7 @@
 import json
 import numpy
 import numpy.linalg
+import matplotlib.pyplot as plt
 
 # Utils for conversion between list of floats (vector representation) and
 # binary (dict key)
@@ -75,11 +76,19 @@ class NeighborTable:
 
     # Statistics for the distribution of items
     def statistics(self):
-        stats = []
+        keys = [*self.table]
+        counts = []
+        mean_centroid_distances = []
         for k in self.table.keys():
-            stats.append((k, len(self.table[k]),
-                          self.mean_centroid_distance(k)))
-        return stats
+            counts.append(len(self.table[k]))
+            mean_centroid_distances.append(self.mean_centroid_distance(k))
+        return keys, counts, mean_centroid_distances
+
+    def statistics_graph(self):
+        keys, counts, mcds = self.statistics()
+        fig, ax = plt.subplots()
+        ax.bar(keys, counts)
+        plt.show()
 
     def export_json(self, path):
         with open(path, 'w') as out:

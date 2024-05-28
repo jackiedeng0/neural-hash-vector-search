@@ -73,6 +73,7 @@ for word, vec in zip(train, train_vectors):
     y = model(vec.reshape(1, EMBED_DIM))
     table.a_set(np.array(y[0]), word)
 
+table.statistics_graph()
 table.export_json("untrained_table.test")
 
 """
@@ -114,8 +115,8 @@ for epoch in range(total_epochs):
     print("Training ...")
     loss = model.train_on_batch(np.array(train_vectors), targets)
     print(f"Loss: {loss:.2f}")
-    print("Statistics:")
-    print(table.statistics())
+    print("Graphing stats...")
+    table.statistics_graph()
 
     # With the new weights, recalculate what the new hash table looks like
     table.clear()
