@@ -76,18 +76,46 @@ class NeighborTable:
 
     # Statistics for the distribution of items
     def statistics(self):
-        keys = [*self.table]
-        counts = []
-        mean_centroid_distances = []
+        stats = []
         for k in self.table.keys():
-            counts.append(len(self.table[k]))
-            mean_centroid_distances.append(self.mean_centroid_distance(k))
-        return keys, counts, mean_centroid_distances
+            stats.append((k, len(self.table[k]),
+                         self.mean_centroid_distance(k)))
+        return stats
 
     def statistics_graph(self):
-        keys, counts, mcds = self.statistics()
-        fig, ax = plt.subplots()
-        ax.bar(keys, counts)
+        stats = self.statistics()
+        keys, counts, mcds = [], [], []
+        fig = plt.figure(figsize=(10, 8))
+        ((axc, axm), (hc, hm)) = fig.subplots(2, 2)
+        # Sorting for count and plotting
+        stats = sorted(stats, key=lambda x: x[1])
+        keys, counts, mcds = zip(*stats)
+        # Make keys into strings so bars are graphed in order
+        keys = list(map(str, keys))
+        axc.bar(keys, counts)
+        axc.set_title('Sorted by count')
+        axc_m = axc.twinx()
+        axc_m.plot(keys, mcds, 'x')
+
+        # Sorting for mcd and plotting
+        stats = sorted(stats, key=lambda x: x[2], reverse=True)
+        keys, counts, mcds = zip(*stats)
+        # Make keys into strings so bars are graphed in order
+        keys = list(map(str, keys))
+        axm.bar(keys, counts)
+        axm.set_title('Sorted by mcd')
+        axm_c = axm.twinx()
+        axm_c.plot(keys, mcds, 'x')
+
+        # Histograms
+        amt, bins = numpy.histogram(counts)
+        hc.set_title('Count histogram')
+        hc.stairs(amt, bins)
+        amt, bins = numpy.histogram(mcds)
+        hm.set_title('MCD histogram')
+        hm.stairs(amt, bins)
+
+        # Show
         plt.show()
 
     def export_json(self, path):
