@@ -1,0 +1,4 @@
+# Exclude embedding models
+*.txt
+*.vectors
+*.bin
