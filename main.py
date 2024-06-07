@@ -20,10 +20,10 @@ training_set, test_set = \
     Model Creation
 """
 
-from models.naive import NaiveHasher
+from models.binary_autoencoder import BinaryAutoencoder
 
 HASH_BITS=8
-hasher = NaiveHasher(embeddings, hash_bits=HASH_BITS, summary=True)
+hasher = BinaryAutoencoder(embeddings, hash_bits=HASH_BITS, summary=True)
 table = hasher.get_table(training_set)
 table.export_json("results/untrained_table.test")
 
@@ -32,8 +32,9 @@ table.export_json("results/untrained_table.test")
     Model Training
 """
 
-TOTAL_EPOCHS=10
+TOTAL_EPOCHS=30
 hasher.train(training_set, epochs=TOTAL_EPOCHS, verbose=True)
 table = hasher.get_table(training_set)
+table.statistics_graph()
 table.export_json("results/trained_table.test")
 
