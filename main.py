@@ -5,7 +5,7 @@
 from gensim.models import KeyedVectors
 from gensim.test.utils import datapath
 
-embeddings = KeyedVectors.load_word2vec_format("embeddings/glove.6B.50d.txt",
+embeddings = KeyedVectors.load_word2vec_format("embeddings/lexvec.enwiki+newscrawl.300d.W.pos.vectors",
                                                binary=False)
 
 
@@ -22,9 +22,10 @@ training_set, test_set = \
 
 from models.binary_autoencoder import BinaryAutoencoder
 
-HASH_BITS=8
+HASH_BITS=32
 hasher = BinaryAutoencoder(embeddings, hash_bits=HASH_BITS, summary=True)
 table = hasher.get_table(training_set)
+table.statistics_graph()
 table.export_json("results/untrained_table.test")
 
 
@@ -32,7 +33,7 @@ table.export_json("results/untrained_table.test")
     Model Training
 """
 
-TOTAL_EPOCHS=30
+TOTAL_EPOCHS=200
 hasher.train(training_set, epochs=TOTAL_EPOCHS, verbose=True)
 table = hasher.get_table(training_set)
 table.statistics_graph()

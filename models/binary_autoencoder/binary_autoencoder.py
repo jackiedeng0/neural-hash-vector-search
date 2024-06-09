@@ -37,8 +37,6 @@ class BinaryAutoencoder(HashingModel):
                 keras.layers.Dense(hash_bits * 2, keras.activations.relu),
                 keras.layers.Dense(hash_bits, keras.activations.sigmoid,
                                    name="EncoderDense2"),
-                # binarization
-                BinarizationLayer(threshold=0.5, name="Binarization"),
                 # decoding
                 keras.layers.Dense(hash_bits * 2, keras.activations.relu),
                 keras.layers.Dense(self._embedding_dim),
@@ -70,6 +68,9 @@ class BinaryAutoencoder(HashingModel):
         for i, t in enumerate(items):
             train_embeddings[i] = np.array(self.embeddings[t.lower()])
 
+        callback = keras.callbacks.EarlyStopping(monitor='loss')
+
         self.model.fit(train_embeddings,
                        train_embeddings,
-                       epochs=epochs)
+                       epochs=epochs,
+                       callbacks=[callback])
