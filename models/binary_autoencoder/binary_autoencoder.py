@@ -11,18 +11,22 @@ import numpy as np
 from models import HashingModel, array_to_binary, binary_to_array
 from neighbor_table import NeighborTable
 
-class BinarizationLayer(keras.layers.Layer):
-    def __init__(self, threshold=0.5, **kwargs):
-        super(BinarizationLayer, self).__init__(**kwargs)
-        self.threshold = threshold
+QUANTIZATION_THRESHOLD = 0.5
+
+class QuantizationLossLayer(keras.layers.Layer):
+    def __init__(self, weighting):
+        super().__init__()
+        self.weighting = weighting
 
     def call(self, inputs):
-        return keras.ops.where(inputs > self.threshold, 1.0, 0.0)
-
-    def get_config(self):
-        config = super(BinarizationLayer, self).get_config()
-        config.update({"threshold": self.threshold})
-        return config
+        self.add_loss(self.weighting *
+            keras.ops.average(
+                keras.ops.abs(
+                    inputs - 
+                    keras.ops.where(
+                        inputs > QUANTIZATION_THRESHOLD, 1.0, 0.0)
+                    )))
+        return inputs
 
 class BinaryAutoencoder(HashingModel):
     def __init__(self, embeddings, hash_bits, summary=False):
@@ -30,22 +34,19 @@ class BinaryAutoencoder(HashingModel):
         # self.embeddings
         # self._embedding_dim
         # self.hash_bits
-        self.model = keras.Sequential(
-            [
-                keras.layers.Input(shape=(self._embedding_dim,)),
-                # encoding
-                keras.layers.Dense(hash_bits * 2, keras.activations.relu),
-                keras.layers.Dense(hash_bits, keras.activations.sigmoid,
-                                   name="EncoderDense2"),
-                # decoding
-                keras.layers.Dense(hash_bits * 2, keras.activations.relu),
-                keras.layers.Dense(self._embedding_dim),
-            ]
-        )
+        inputs = keras.Input(shape=(self._embedding_dim,))
+        # encoding
+        encode1 = keras.layers.Dense(hash_bits * 2, keras.activations.relu)(inputs)
+        encode2 = keras.layers.Dense(hash_bits, keras.activations.sigmoid,
+                           name="EncoderDense2")(encode1)
+        qloss = QuantizationLossLayer(weighting=0.01)(encode2)
+        # decoding
+        decode1 = keras.layers.Dense(hash_bits * 2, keras.activations.relu)(qloss)
+        decode2 = keras.layers.Dense(self._embedding_dim)(decode1)
 
-        self.encoder = keras.Model(inputs=self.model.inputs,
-                          outputs=
-                               self.model.get_layer("EncoderDense2").output)
+        self.model = keras.Model(inputs=inputs, outputs=decode2)
+
+        self.encoder = keras.Model(inputs=inputs, outputs=encode2)
 
         if summary:
             self.model.summary()
