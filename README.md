@@ -1,6 +1,6 @@
-# WP Vector Search
+# Neural Hash Vector Search
 
-Neural hash based vector similarity search plugin for Wordpress/WooCommerce.
+Neural hash based vector similarity search.
 
 Neural network is trained to be a hashing algorithm to perform locality sensitive hashing without requiring innumerable hyperplanes.
 
